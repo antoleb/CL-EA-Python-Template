@@ -2,6 +2,8 @@ import imagehash
 
 import numpy as np
 
+from MobileNetCosineChecker import NNModelChecker
+
 
 def multi_hash_dist(one_hash, other_hash):
     # Get the hash distance for each region hash within cutoff
@@ -32,6 +34,7 @@ class ImageChecker:
         self.hash_dict = {
             hash_name: {} for hash_name in self.hash_func_dict
         }
+        self.mobile_net_checker = NNModelChecker()
 
     def _get_hash_distance(self, hash1, hash2):
         if type(hash1) != imagehash.ImageMultiHash:
@@ -65,9 +68,10 @@ class ImageChecker:
             for ref_hash in self.hash_dict[hash_type].keys():
                 distance = self._get_hash_distance(hash, ref_hash)
                 min_distance = min(min_distance, distance)
+        min_distance = min(min_distance, self.mobile_net_checker.find_most_simular_image_dist(image))
         return min_distance
 
-    def register_new_image(self, image, description, hash_types=None):
+    def register_new_image(self, image, description, hash_types=None, add_to_nn=True):
         if hash_types is None:
             hash_types = self.hash_func_dict.keys()
         for hash_type in hash_types:
@@ -76,6 +80,8 @@ class ImageChecker:
             if hash in self.hash_dict[hash_type]:
                 message = self.hash_dict[hash_type][hash] + ' & ' + description
             self.hash_dict[hash_type][hash] = message
+        if add_to_nn:
+            self.mobile_net_checker.add_image_to_storage(image, description)
 
     def get_image_score(self, image):
         return self.find_closest_distance(image)
